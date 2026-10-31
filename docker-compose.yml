@@ -1,0 +1,28 @@
+name: assignment-part1
+services:
+  web:
+    image: ${APP_IMAGE:?Set APP_IMAGE}
+    container_name: assignment-part1-web
+    ports: ["8081:8000"]
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    depends_on:
+      db: {condition: service_healthy}
+    restart: unless-stopped
+  db:
+    image: postgres:17-alpine
+    container_name: assignment-part1-db
+    environment:
+      POSTGRES_DB: tasks
+      POSTGRES_USER: tasks
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    ports: ["5433:5432"]
+    volumes: ["part1-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tasks -d tasks"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+volumes:
+  part1-data:

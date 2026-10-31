@@ -1,0 +1,29 @@
+name: assignment-part2
+services:
+  web:
+    image: python:3.12-slim
+    container_name: assignment-part2-web
+    working_dir: /app
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && gunicorn --bind 0.0.0.0:8000 --workers 2 app:app"
+    ports: ["8082:8000"]
+    volumes: ["${SOURCE_DIR:?Set SOURCE_DIR}:/app:ro"]
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    depends_on:
+      db: {condition: service_healthy}
+  db:
+    image: postgres:17-alpine
+    container_name: assignment-part2-db
+    environment:
+      POSTGRES_DB: tasks
+      POSTGRES_USER: tasks
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    ports: ["5434:5432"]
+    volumes: ["part2-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tasks -d tasks"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  part2-data:
