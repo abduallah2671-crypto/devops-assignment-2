@@ -8,6 +8,14 @@ pipeline {
   }
   stages {
     stage('Checkout') { steps { checkout scm } }
+    stage('Resolve push sender') {
+      steps {
+        script {
+          env.PUSHER_EMAIL = sh(script: 'cat "/var/lib/jenkins/assignment-pushers/${GIT_COMMIT}.email"', returnStdout: true).trim()
+          if (!env.PUSHER_EMAIL) { error('No push sender email was captured from the GitHub webhook') }
+        }
+      }
+    }
     stage('Validate in Docker') {
       steps {
         script {
@@ -30,9 +38,15 @@ pipeline {
   }
   post {
     always {
-      emailext(subject: "${JOB_NAME} #${BUILD_NUMBER}: ${currentBuild.currentResult}",
-        body: "Result: ${currentBuild.currentResult}\nBuild: ${BUILD_URL}",
-        recipientProviders: [developers(), requestor()])
+      script {
+        if (env.PUSHER_EMAIL) {
+          emailext(to: env.PUSHER_EMAIL, from: 'abduallah2671@gmail.com',
+            subject: "${JOB_NAME} #${BUILD_NUMBER}: ${currentBuild.currentResult}",
+            body: "Result: ${currentBuild.currentResult}\nBuild: ${BUILD_URL}\nCommit: ${GIT_COMMIT}")
+        } else {
+          echo 'Email not sent because the webhook push sender address is unavailable'
+        }
+      }
     }
   }
 }
